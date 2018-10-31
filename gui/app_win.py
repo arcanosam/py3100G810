@@ -1,8 +1,9 @@
 """GUI class definition for main window
 """
 
+from tkinter import CENTER, X, YES
 
-from tkinter.ttk import Frame
+from tkinter.ttk import Frame, Label
 
 
 class AppWin(Frame):
@@ -19,3 +20,18 @@ class AppWin(Frame):
         )
 
         Frame.__init__(self, master, **kw)
+
+        Label(
+            self,
+            font='size 16 bold',
+            text='{0}\n{1}'.format(
+                '   py3100G810 - Collect of weight  ',
+                '           and humidity of grains'
+            ),
+            background='light blue',
+            foreground='dark green'
+        ).pack(
+            fill=X,
+            expand=YES,
+            anchor=CENTER
+        )

@@ -15,3 +15,4 @@ Python DeskApp that helps collect weight and humidity using 3100 family weighing
 ### Requirements
 * Python 3.7.1 with **tkinter**
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
