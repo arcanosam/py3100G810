@@ -1,5 +1,5 @@
 # py3100G810
-Python DeskApp that helps collect weight and humidity using 3100 family weighing indicators and Gehaka grain meter G810 respectively
+Grains weight and humidity collector from 3100 family weighing indicators and Gehaka grain meter G810 respectively - a Python Tkinter Application
 
 ### Goals
 * A python GUI application
