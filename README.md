@@ -7,8 +7,9 @@ Grains weight and humidity collector from 3100 family weighing indicators and Ge
   * That accepts an ID code
   * Used to identify the values collected below
 
-  * To read values from [3100 family weighing indicators](http://www.alfainstrumentos.com.br/produto/linha-3100-cs-painel/)
-    * values from a [Gehaka Grain Meter G810](https://www.gehaka.com.br/produtos/linha-agricola/medidor-de-umidade-de-graos-de-bancada/g810-std)
+  * To read values from:
+    * [3100 family weighing indicators](http://www.alfainstrumentos.com.br/produto/linha-3100-cs-painel/)
+    * and [Gehaka Grain Meter G810](https://www.gehaka.com.br/produtos/linha-agricola/medidor-de-umidade-de-graos-de-bancada/g810-std)
 
   * To persist all this values above in a PostgreSQL database.
 
