@@ -18,6 +18,9 @@ def get_app_definitions(app_prop):
         'app_lbledt_bkgr': 'white',
         'app_lbledt_frgr': 'green',
         'labelframe_weight_caption': 'Weight:',
-        'labelframe_humidity_caption': 'Humidity:'
+        'labelframe_humidity_caption': 'Humidity:',
+        'read_grain_weight': 'Read weight',
+        'read_grain_humidity': 'Read humidity',
+        'button_text_save_data': 'Persist data'
 
     }[app_prop]

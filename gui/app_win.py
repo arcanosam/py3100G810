@@ -1,9 +1,9 @@
 """GUI class definition for main window
 """
 
-from tkinter import CENTER, DoubleVar, DISABLED, HORIZONTAL, TOP, W, X, YES
+from tkinter import BOTH, BOTTOM, CENTER, DoubleVar, DISABLED, HORIZONTAL, SUNKEN, TOP, W, X, YES
 
-from tkinter.ttk import Entry, Frame, Label, LabelFrame, Panedwindow
+from tkinter.ttk import Button, Entry, Frame, Label, LabelFrame, Panedwindow
 
 from gui.app_def import get_app_definitions
 
@@ -46,6 +46,19 @@ class AppWin(Frame):
         # between the Entry widget and to send to a database
         self.humidty_portion = DoubleVar(master, value=0.0)
 
+        # variable hold the instance of button
+        # that performs rading of grain weights
+        self.btnReadWeight = None
+
+        # variable hold the instance of button
+        # that performs rading of grain humidity
+        self.btnReadHumidity = None
+
+        # variable hold the instance of button
+        # that show info the current situation
+        # of application execution
+        self.stb_info = None
+
         # root Tk
         self.master = master
 
@@ -60,6 +73,12 @@ class AppWin(Frame):
         self.add_ipt_id_code()
 
         self.add_weight_humidity_panel()
+
+        self.add_reading_buttons()
+
+        self.button_persist_data()
+
+        self.status_bar_info()
 
     def add_title_app(self):
         """define the Title application Label
@@ -156,3 +175,32 @@ class AppWin(Frame):
         self.ety_humidity.pack(padx=5, pady=5)
 
         self.ety_humidity.config(state=DISABLED)
+
+    def add_reading_buttons(self):
+
+        self.btnReadWeight = Button(
+            self.lblfrm_weight,
+            text=get_app_definitions('read_grain_weight')
+        )
+
+        self.btnReadWeight.pack(fill=BOTH, expand=YES)
+
+        self.btnReadHumidity = Button(
+            self.lblfrm_hum,
+            text=get_app_definitions('read_grain_humidity')
+        )
+
+        self.btnReadHumidity.pack(fill=BOTH,expand=YES)
+
+    def button_persist_data(self):
+
+        Button(
+            self,
+            text=get_app_definitions('button_text_save_data')
+        ).pack(fill=X)
+
+    def status_bar_info(self):
+
+        self.stb_info = Label(self, borderwidth=1, relief=SUNKEN, anchor=W)
+
+        self.stb_info.pack(side=BOTTOM, fill=X)
