@@ -21,6 +21,7 @@ def get_app_definitions(app_prop):
         'labelframe_humidity_caption': 'Humidity:',
         'read_grain_weight': 'Read weight',
         'read_grain_humidity': 'Read humidity',
-        'button_text_save_data': 'Persist data'
+        'button_text_save_data': 'Persist data',
+        'default_label_stbar_info': 'Application ready'
 
     }[app_prop]

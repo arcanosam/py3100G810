@@ -1,7 +1,10 @@
 """GUI class definition for main window
 """
 
-from tkinter import BOTH, BOTTOM, CENTER, DoubleVar, DISABLED, HORIZONTAL, SUNKEN, TOP, W, X, YES
+from tkinter import (
+    BOTH, BOTTOM, CENTER, DoubleVar, DISABLED,
+    HORIZONTAL, StringVar, SUNKEN, TOP, W, X, YES
+)
 
 from tkinter.ttk import Button, Entry, Frame, Label, LabelFrame, Panedwindow
 
@@ -48,16 +51,21 @@ class AppWin(Frame):
 
         # variable hold the instance of button
         # that performs rading of grain weights
-        self.btnReadWeight = None
+        self.btn_read_weight = None
 
         # variable hold the instance of button
         # that performs rading of grain humidity
-        self.btnReadHumidity = None
+        self.btn_read_humidity = None
 
         # variable hold the instance of button
         # that show info the current situation
         # of application execution
         self.stb_info = None
+
+        # variable used to define the current
+        # context of the application on a label
+        # used as status bar
+        self.app_status = StringVar()
 
         # root Tk
         self.master = master
@@ -79,6 +87,8 @@ class AppWin(Frame):
         self.button_persist_data()
 
         self.status_bar_info()
+
+        self.app_status.set('Application ready.')
 
     def add_title_app(self):
         """define the Title application Label
@@ -177,20 +187,24 @@ class AppWin(Frame):
         self.ety_humidity.config(state=DISABLED)
 
     def add_reading_buttons(self):
+        """Buttons that trigger the data reading from the hardwares
 
-        self.btnReadWeight = Button(
+        :return: None
+        """
+
+        self.btn_read_weight = Button(
             self.lblfrm_weight,
             text=get_app_definitions('read_grain_weight')
         )
 
-        self.btnReadWeight.pack(fill=BOTH, expand=YES)
+        self.btn_read_weight.pack(fill=BOTH, expand=YES)
 
-        self.btnReadHumidity = Button(
+        self.btn_read_humidity = Button(
             self.lblfrm_hum,
             text=get_app_definitions('read_grain_humidity')
         )
 
-        self.btnReadHumidity.pack(fill=BOTH,expand=YES)
+        self.btn_read_humidity.pack(fill=BOTH, expand=YES)
 
     def button_persist_data(self):
 
@@ -201,6 +215,12 @@ class AppWin(Frame):
 
     def status_bar_info(self):
 
-        self.stb_info = Label(self, borderwidth=1, relief=SUNKEN, anchor=W)
+        self.stb_info = Label(
+            self,
+            borderwidth=1,
+            relief=SUNKEN,
+            anchor=W,
+            textvariable=self.app_status
+        )
 
         self.stb_info.pack(side=BOTTOM, fill=X)
