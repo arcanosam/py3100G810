@@ -1,12 +1,17 @@
 """GUI class definition for main window
 """
 
+import re
+
 from tkinter import (
     BOTH, BOTTOM, CENTER, DoubleVar, DISABLED,
     HORIZONTAL, StringVar, SUNKEN, TOP, W, X, YES
 )
 
 from tkinter.ttk import Button, Entry, Frame, Label, LabelFrame, Panedwindow
+
+from serial import Serial
+from serial.serialutil import SerialException
 
 from gui.app_def import get_app_definitions
 
@@ -67,12 +72,21 @@ class AppWin(Frame):
         # used as status bar
         self.app_status = StringVar()
 
+        # variable used to hold Serial instance
+        # for 3100 indicator
+        self.ind3100 = None
+
         # root Tk
         self.master = master
 
+        # set the title bar of the app
         self.master.title(
             get_app_definitions('app_root_title')
         )
+
+        # Prevent the app closing before
+        # undone some necessary process
+        self.master.protocol("WM_DELETE_WINDOW", self._close_app)
 
         Frame.__init__(self, master, **kw)
 
@@ -86,9 +100,24 @@ class AppWin(Frame):
 
         self.button_persist_data()
 
-        self.status_bar_info()
+        self.add_stsbar_info()
 
-        self.app_status.set('Application ready.')
+        self.app_status.set(
+            'Application connecting with 3100 weight indicator and G810 measurer...'
+        )
+
+        self.master.after(100, self._conn_serials)
+
+    def _close_app(self):
+        """some processes be undone before the system tkinter deletion/destroy
+
+        :return: None
+        """
+
+        if self.ind3100:
+            self.ind3100.close()
+
+        self.master.destroy()
 
     def add_title_app(self):
         """define the Title application Label
@@ -207,13 +236,21 @@ class AppWin(Frame):
         self.btn_read_humidity.pack(fill=BOTH, expand=YES)
 
     def button_persist_data(self):
+        """ Save data button, not yet implemented
+
+        :return: None
+        """
 
         Button(
             self,
             text=get_app_definitions('button_text_save_data')
         ).pack(fill=X)
 
-    def status_bar_info(self):
+    def add_stsbar_info(self):
+        """define the status bar where will be the system messages
+
+        :return: None
+        """
 
         self.stb_info = Label(
             self,
@@ -224,3 +261,52 @@ class AppWin(Frame):
         )
 
         self.stb_info.pack(side=BOTTOM, fill=X)
+
+    def _conn_serials(self):
+        """connect to 3100 indicator and G810 by their respectively serials
+
+        :return: None
+        """
+
+        try:
+
+            self.ind3100 = Serial(
+                'COM6',
+                19200
+            )
+
+            try:
+
+                self.ind3100.open()
+
+            except SerialException as e:
+                self.ind3100.close()
+                self.ind3100.open()
+
+            # here is set the loop to
+            # continues data reading from both hardwares
+            self.master.after(100, self._collecting_loop)
+
+        except SerialException as e:
+            self.app_status.set(
+                'Application not ready.'
+            )
+
+            self.master.after(100, self._conn_serials)
+
+    def _collecting_loop(self):
+        """loop to always capture the new data from both hardwares
+
+        :return: None
+        """
+
+        if self.ind3100.is_open:
+            self.app_status.set(
+                '3100 indicator connected and collecting...'
+            )
+
+            self.weight_portion.set(
+                re.findall('(\d+,\d+)', str(self.ind3100.readline()))
+            )
+
+        self.master.after(100, self._collecting_loop)
