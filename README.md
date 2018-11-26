@@ -19,6 +19,14 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
   * [pyserial](https://github.com/pyserial/pyserial)
 
 
+##### Update 2018-11-26
+
+* Fix it bug when the 3100 weighing indicator is turned off, freezing the application.
+  * Solution used: Threads
+
+* Some code refactor
+  * Using python properties, make variables private...
+
 ##### Update 2018-11-16
 
 * Starts collect data from 3100 family weighing indicators' serial

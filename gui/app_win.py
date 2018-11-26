@@ -3,6 +3,8 @@
 
 import re
 
+import threading
+
 from tkinter import (
     BOTH, BOTTOM, CENTER, DoubleVar, DISABLED,
     HORIZONTAL, StringVar, SUNKEN, TOP, W, X, YES
@@ -20,93 +22,147 @@ class AppWin(Frame):
 
     def __init__(self, master=None, **kw):
 
+        # Declarations
+        ###############
+
         # Entry widget to collect
         # ID code used to identify
         # weight and humidity  of grain
+        self._ety_qrbarcode = None
 
-        self.bar_qr_code = None
+        # Variabel to get the ide code of
+        # Entry wiget, that will identify
+        # the grain portion
+        self._ety_qrbarcode_var = StringVar()
 
         # Pannel Window that contains
         # LabelFrames widgets for weight and humidity
-        self.pw_wei_hum = None
+        self._pw_wei_hum = None
 
         # LabelFrame widget that contains
         # Entry widget for weidght
-        self.lblfrm_weight = None
+        self._lblfrm_weight = None
 
         # Entry Widget to collect grain weight
         # from G810 machine
-        self.ety_weight = None
+        self._ety_weight = None
 
         # DoubleVar variable to hold the weight value
         # between the Entry widget and to send to a database
-        self.weight_portion = DoubleVar(master, value=0.0)
+        self._ety_weight_portion_var = DoubleVar(master, value=0.0)
 
         # LabelFrame widget that contains
         # Entry widget for humidity
-        self.lblfrm_hum = None
+        self._lblfrm_hum = None
 
         # Entry Widget to collect grain humidity
         # from 3100 machine family
-        self.ety_humidity = None
+        self._ety_humidity = None
 
         # DoubleVar variable to hold the humidity value
         # between the Entry widget and to send to a database
-        self.humidty_portion = DoubleVar(master, value=0.0)
+        self._ety_humidity_portion_var = DoubleVar(master, value=0.0)
 
         # variable hold the instance of button
         # that performs rading of grain weights
-        self.btn_read_weight = None
+        self._btn_read_weight = None
 
         # variable hold the instance of button
         # that performs rading of grain humidity
-        self.btn_read_humidity = None
+        self._btn_read_humidity = None
 
         # variable hold the instance of button
         # that show info the current situation
         # of application execution
-        self.stb_info = None
+        self._stb_info = None
 
         # variable used to define the current
         # context of the application on a label
         # used as status bar
-        self.app_status = StringVar()
+        self._stb_info_var = StringVar()
 
         # variable used to hold Serial instance
         # for 3100 indicator
-        self.ind3100 = None
+        self._ind3100 = Serial()
+
+        # Define a thread used after
+        # open the serial to collect the
+        # data and prevent the freeze of
+        # application when the hardware is off
+
+        self._thread_is_running = True
+
+        self._thr_read_weight_serial = threading.Thread(target=self._collecting_loop)
+        self._thr_read_weight_serial.setDaemon(True)
+
+        # GUI section
+        ###############
 
         # root Tk
-        self.master = master
+        self._master = master
 
         # set the title bar of the app
-        self.master.title(
+        self._master.title(
             get_app_definitions('app_root_title')
         )
 
         # Prevent the app closing before
         # undone some necessary process
-        self.master.protocol("WM_DELETE_WINDOW", self._close_app)
+        self._master.protocol("WM_DELETE_WINDOW", self._close_app)
 
         Frame.__init__(self, master, **kw)
 
-        self.add_title_app()
+        self._add_title_app()
 
-        self.add_ipt_id_code()
+        self._add_ipt_id_code()
 
-        self.add_weight_humidity_panel()
+        self._add_weight_humidity_panel()
 
-        self.add_reading_buttons()
+        self._add_reading_buttons()
 
-        self.button_persist_data()
+        self._button_persist_data()
 
-        self.add_stsbar_info()
+        self._add_stsbar_info()
 
-        self.app_status.set(
-            'Application connecting with 3100 weight indicator and G810 measurer...'
-        )
+        # Final app sets
+        #################
 
-        self.master.after(100, self._conn_serials)
+        self.app_status = get_app_definitions('sys_app_msg_01')
+
+        self._master.after(100, self._conn_serials)
+
+    # properties
+    #############
+
+    # 3100 Weight property
+
+    @property
+    def weight_portion(self):
+        return self._ety_weight_portion_var.get()
+
+    @weight_portion.setter
+    def weight_portion(self, value):
+        self._ety_weight_portion_var.set(value)
+
+    # G810 humidity property
+
+    @property
+    def humidity_portion(self):
+        return self._ety_humidity_portion_var.get()
+
+    @humidity_portion.setter
+    def humidity_portion(self, value):
+        self._ety_humidity_portion_var.set(value)
+
+    # App status property
+
+    @property
+    def app_status(self):
+        return self._stb_info_var.get()
+
+    @app_status.setter
+    def app_status(self, value):
+        self._stb_info_var.set(value)
 
     def _close_app(self):
         """some processes be undone before the system tkinter deletion/destroy
@@ -114,12 +170,15 @@ class AppWin(Frame):
         :return: None
         """
 
-        if self.ind3100:
-            self.ind3100.close()
+        self._thread_is_running = False
 
-        self.master.destroy()
+        if self._ind3100:
+            self._ind3100.cancel_read()
+            self._ind3100.close()
 
-    def add_title_app(self):
+        self._master.destroy()
+
+    def _add_title_app(self):
         """define the Title application Label
 
         :return: None
@@ -140,7 +199,7 @@ class AppWin(Frame):
             anchor=CENTER
         )
 
-    def add_ipt_id_code(self):
+    def _add_ipt_id_code(self):
         """define the id code input widget
 
         :return:None
@@ -158,84 +217,85 @@ class AppWin(Frame):
             fill=X
         )
 
-        self.bar_qr_code = Entry(
+        self._ety_qrbarcode = Entry(
             self,
-            font='Courier 14 bold'
+            font='Courier 14 bold',
+            textvariable=self._ety_qrbarcode_var
         )
 
-        self.bar_qr_code.pack(fill=X)
+        self._ety_qrbarcode.pack(fill=X)
 
-        self.bar_qr_code.focus()
+        self._ety_qrbarcode.focus()
 
-    def add_weight_humidity_panel(self):
+    def _add_weight_humidity_panel(self):
         """define the main Pannel Widget
 
         :return: None
         """
 
-        self.pw_wei_hum = Panedwindow(self, orient=HORIZONTAL)
+        self._pw_wei_hum = Panedwindow(self, orient=HORIZONTAL)
 
-        self.pw_wei_hum.pack()
+        self._pw_wei_hum.pack()
 
-        self.lblfrm_weight = LabelFrame(
-            self.pw_wei_hum,
+        self._lblfrm_weight = LabelFrame(
+            self._pw_wei_hum,
             text=get_app_definitions('labelframe_weight_caption')
         )
 
-        self.pw_wei_hum.add(self.lblfrm_weight)
+        self._pw_wei_hum.add(self._lblfrm_weight)
 
-        self.ety_weight = Entry(
-            self.lblfrm_weight,
+        self._ety_weight = Entry(
+            self._lblfrm_weight,
             font='Courier 32 bold',
             justify=CENTER,
             width=6,
-            textvariable=self.weight_portion
+            textvariable=self._ety_weight_portion_var
         )
 
-        self.ety_weight.pack(padx=5, pady=5)
+        self._ety_weight.pack(padx=5, pady=5)
 
-        self.ety_weight.config(state=DISABLED)
+        self._ety_weight.config(state=DISABLED)
 
-        self.lblfrm_hum = LabelFrame(
-            self.pw_wei_hum,
+        self._lblfrm_hum = LabelFrame(
+            self._pw_wei_hum,
             text=get_app_definitions('labelframe_humidity_caption')
         )
 
-        self.pw_wei_hum.add(self.lblfrm_hum)
+        self._pw_wei_hum.add(self._lblfrm_hum)
 
-        self.ety_humidity = Entry(
-            self.lblfrm_hum,
+        self._ety_humidity = Entry(
+            self._lblfrm_hum,
             font='Courier 32 bold',
             justify=CENTER,
             width=6,
-            textvariable=self.humidty_portion
+            textvariable=self._ety_humidity_portion_var
         )
 
-        self.ety_humidity.pack(padx=5, pady=5)
+        self._ety_humidity.pack(padx=5, pady=5)
 
-        self.ety_humidity.config(state=DISABLED)
+        self._ety_humidity.config(state=DISABLED)
 
-    def add_reading_buttons(self):
+    def _add_reading_buttons(self):
         """Buttons that trigger the data reading from the hardwares
 
         :return: None
         """
 
-        self.btn_read_weight = Button(
-            self.lblfrm_weight,
+        self._btn_read_weight = Button(
+            self._lblfrm_weight,
             text=get_app_definitions('read_grain_weight')
         )
 
-        self.btn_read_weight.pack(fill=BOTH, expand=YES)
+        self._btn_read_weight.pack(fill=BOTH, expand=YES)
 
-        self.btn_read_humidity = Button(
-            self.lblfrm_hum,
+        self._btn_read_humidity = Button(
+            self._lblfrm_hum,
             text=get_app_definitions('read_grain_humidity')
         )
 
-        self.btn_read_humidity.pack(fill=BOTH, expand=YES)
+        self._btn_read_humidity.pack(fill=BOTH, expand=YES)
 
-    def button_persist_data(self):
+    def _button_persist_data(self):
         """ Save data button, not yet implemented
 
         :return: None
@@ -246,21 +306,21 @@ class AppWin(Frame):
             text=get_app_definitions('button_text_save_data')
         ).pack(fill=X)
 
-    def add_stsbar_info(self):
+    def _add_stsbar_info(self):
         """define the status bar where will be the system messages
 
         :return: None
         """
 
-        self.stb_info = Label(
+        self._stb_info = Label(
             self,
             borderwidth=1,
             relief=SUNKEN,
             anchor=W,
-            textvariable=self.app_status
+            textvariable=self._stb_info_var
         )
 
-        self.stb_info.pack(side=BOTTOM, fill=X)
+        self._stb_info.pack(side=BOTTOM, fill=X)
 
     def _conn_serials(self):
         """connect to 3100 indicator and G810 by their respectively serials
@@ -268,31 +328,19 @@ class AppWin(Frame):
         :return: None
         """
 
-        try:
-
-            self.ind3100 = Serial(
-                'COM6',
-                19200
-            )
-
+        if not self._ind3100.is_open:
             try:
 
-                self.ind3100.open()
+                # apply serial config
+                self._ind3100.baudrate = 19200
+                self._ind3100.port = 'COM10'
+                self._ind3100.open()
+
+                # start thread
+                self._thr_read_weight_serial.start()
 
             except SerialException as e:
-                self.ind3100.close()
-                self.ind3100.open()
-
-            # here is set the loop to
-            # continues data reading from both hardwares
-            self.master.after(100, self._collecting_loop)
-
-        except SerialException as e:
-            self.app_status.set(
-                'Application not ready.'
-            )
-
-            self.master.after(100, self._conn_serials)
+                self._ind3100.close()
 
     def _collecting_loop(self):
         """loop to always capture the new data from both hardwares
@@ -300,13 +348,18 @@ class AppWin(Frame):
         :return: None
         """
 
-        if self.ind3100.is_open:
-            self.app_status.set(
-                '3100 indicator connected and collecting...'
-            )
+        while True:
 
-            self.weight_portion.set(
-                re.findall('(\d+,\d+)', str(self.ind3100.readline()))
-            )
+            if self._ind3100.is_open:
+                self.app_status = get_app_definitions('sys_app_msg_02')
 
-        self.master.after(100, self._collecting_loop)
+                weight_collected = str(self._ind3100.readline())
+
+                self.weight_portion = re.findall(
+                    '(\d+,\d+)',
+                    weight_collected
+                )
+
+            if not self._thread_is_running:
+                break
+

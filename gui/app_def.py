@@ -22,6 +22,7 @@ def get_app_definitions(app_prop):
         'read_grain_weight': 'Read weight',
         'read_grain_humidity': 'Read humidity',
         'button_text_save_data': 'Persist data',
-        'default_label_stbar_info': 'Application ready'
+        'sys_app_msg_01': 'Application connecting with 3100 weight indicator and G810 measurer...',
+        'sys_app_msg_02': '3100 indicator connected and collecting...'
 
     }[app_prop]
