@@ -14,10 +14,15 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
   * To **persist** this two collected values in a PostgreSQL database.
 
 ### Requirements
-* Python 3.7.1 with 
+* Python **3.7.1** with 
   * **tkinter**
   * [pyserial](https://github.com/pyserial/pyserial)
 
+
+##### Update 2018-11-26
+
+* Using simple method to identify when the value read is stable
+  * Will be used when persist the values in database.
 
 ##### Update 2018-11-26
 

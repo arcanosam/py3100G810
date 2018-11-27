@@ -95,6 +95,9 @@ class AppWin(Frame):
         self._thr_read_weight_serial = threading.Thread(target=self._collecting_loop)
         self._thr_read_weight_serial.setDaemon(True)
 
+        # Used to suspend main status to show other message systems
+        self._enable_main_status = True
+
         # GUI section
         ###############
 
@@ -351,15 +354,38 @@ class AppWin(Frame):
         while True:
 
             if self._ind3100.is_open:
-                self.app_status = get_app_definitions('sys_app_msg_02')
+                if self._enable_main_status:
+                    self.app_status = get_app_definitions('sys_app_msg_02')
 
-                weight_collected = str(self._ind3100.readline())
-
-                self.weight_portion = re.findall(
-                    '(\d+,\d+)',
-                    weight_collected
-                )
+                self._stabilize_reading(self._ind3100.readline())
 
             if not self._thread_is_running:
                 break
 
+    def _stabilize_reading(self, serial_data):
+
+        values_found = re.findall(
+            '(\d+,\d+)',
+            str(serial_data)
+        )
+
+        if len(values_found) > 0:
+            weight_read = float(values_found[0].replace(',', '.'))
+
+            if self.weight_portion == weight_read:
+                self.app_status = get_app_definitions('weight_msg_01')
+                if not self._enable_main_status:
+                    self.master.after(2000, self._enable_main_sts)
+            else:
+                self.app_status = get_app_definitions('weight_msg_02')
+                self._enable_main_status = False
+
+            self.weight_portion = weight_read
+        else:
+            self.weight_portion = 0.
+
+        return self.weight_portion
+
+    def _enable_main_sts(self):
+
+        self._enable_main_status = True

@@ -23,6 +23,8 @@ def get_app_definitions(app_prop):
         'read_grain_humidity': 'Read humidity',
         'button_text_save_data': 'Persist data',
         'sys_app_msg_01': 'Application connecting with 3100 weight indicator and G810 measurer...',
-        'sys_app_msg_02': '3100 indicator connected and collecting...'
+        'sys_app_msg_02': '3100 indicator connected and collecting...',
+        'weight_msg_01': 'Stabilized reading!',
+        'weight_msg_02': 'Stabilizing reading...'
 
     }[app_prop]
