@@ -6,11 +6,13 @@ import re
 import threading
 
 from tkinter import (
-    BOTH, BOTTOM, CENTER, DoubleVar, DISABLED,
-    HORIZONTAL, StringVar, SUNKEN, TOP, W, X, YES
+    CENTER, DoubleVar, DISABLED, HORIZONTAL,
+    StringVar, TOP, W, X, YES
 )
 
 from tkinter.ttk import Button, Entry, Frame, Label, LabelFrame, Panedwindow
+
+from tkinter.messagebox import askyesno, showinfo
 
 from serial import Serial
 from serial.serialutil import SerialException
@@ -30,10 +32,28 @@ class AppWin(Frame):
         # weight and humidity  of grain
         self._ety_qrbarcode = None
 
-        # Variabel to get the ide code of
+        # Variable to get the ide code of
         # Entry wiget, that will identify
         # the grain portion
         self._ety_qrbarcode_var = StringVar()
+
+        # Pannel Window that contains
+        # LabelFrames widgets for weight and humidity
+        # founded in database
+        self._pw_db_values = None
+
+        # LabelFrame widget that contains
+        # Labels filled with values of weidght
+        # and humidity recovered from database
+        self._lblfrm_db_values = None
+
+        # Label holds the value of weight recovered
+        # from database
+        self._lbl_db_weight = None
+
+        # Label holds the value of humidity recovered
+        # from database
+        self._lbl_db_humidity = None
 
         # Pannel Window that contains
         # LabelFrames widgets for weight and humidity
@@ -63,24 +83,6 @@ class AppWin(Frame):
         # between the Entry widget and to send to a database
         self._ety_humidity_portion_var = DoubleVar(master, value=0.0)
 
-        # variable hold the instance of button
-        # that performs rading of grain weights
-        self._btn_read_weight = None
-
-        # variable hold the instance of button
-        # that performs rading of grain humidity
-        self._btn_read_humidity = None
-
-        # variable hold the instance of button
-        # that show info the current situation
-        # of application execution
-        self._stb_info = None
-
-        # variable used to define the current
-        # context of the application on a label
-        # used as status bar
-        self._stb_info_var = StringVar()
-
         # variable used to hold Serial instance
         # for 3100 indicator
         self._ind3100 = Serial()
@@ -94,9 +96,6 @@ class AppWin(Frame):
 
         self._thr_read_weight_serial = threading.Thread(target=self._collecting_loop)
         self._thr_read_weight_serial.setDaemon(True)
-
-        # Used to suspend main status to show other message systems
-        self._enable_main_status = True
 
         # GUI section
         ###############
@@ -119,20 +118,14 @@ class AppWin(Frame):
 
         self._add_ipt_id_code()
 
+        self._add_database_values_panel()
+
         self._add_weight_humidity_panel()
-
-        self._add_reading_buttons()
-
-        self._button_persist_data()
-
-        self._add_stsbar_info()
 
         # Final app sets
         #################
 
-        self.app_status = get_app_definitions('sys_app_msg_01')
-
-        self._master.after(100, self._conn_serials)
+        self._master.after(500, self._conn_serials)
 
     # properties
     #############
@@ -156,16 +149,6 @@ class AppWin(Frame):
     @humidity_portion.setter
     def humidity_portion(self, value):
         self._ety_humidity_portion_var.set(value)
-
-    # App status property
-
-    @property
-    def app_status(self):
-        return self._stb_info_var.get()
-
-    @app_status.setter
-    def app_status(self, value):
-        self._stb_info_var.set(value)
 
     def _close_app(self):
         """some processes be undone before the system tkinter deletion/destroy
@@ -230,6 +213,41 @@ class AppWin(Frame):
 
         self._ety_qrbarcode.focus()
 
+    def _add_database_values_panel(self):
+
+        self._pw_db_values = Panedwindow(self, orient=HORIZONTAL)
+
+        self._pw_db_values.pack(fill=X, expand=True)
+
+        self._lblfrm_db_values = LabelFrame(
+            self._pw_wei_hum,
+            text=get_app_definitions('labelframe_db_values_caption')
+        )
+
+        self._pw_db_values.add(self._lblfrm_db_values)
+
+        Label(
+            self._lblfrm_db_values,
+            font='size 13 bold',
+            text=get_app_definitions('label_db_weight')
+        ).grid(row=0, column=0, sticky=W)
+
+        self._lbl_db_weight = Label(
+            self._lblfrm_db_values,
+            font='size 13 bold'
+        ).grid(row=0, column=1)
+
+        Label(
+            self._lblfrm_db_values,
+            font='size 13 bold',
+            text=get_app_definitions('label_db_humidi')
+        ).grid(row=1, column=0)
+
+        self._lbl_db_humidity = Label(
+            self._lblfrm_db_values,
+            font='size 13 bold'
+        ).grid(row=1, column=1)
+
     def _add_weight_humidity_panel(self):
         """define the main Pannel Widget
 
@@ -259,6 +277,12 @@ class AppWin(Frame):
 
         self._ety_weight.config(state=DISABLED)
 
+        Button(
+            self._lblfrm_weight,
+            text=get_app_definitions('btn_save_weight'),
+            command = self._save_weight_portion
+        ).pack(fill=X)
+
         self._lblfrm_hum = LabelFrame(
             self._pw_wei_hum,
             text=get_app_definitions('labelframe_humidity_caption')
@@ -278,52 +302,11 @@ class AppWin(Frame):
 
         self._ety_humidity.config(state=DISABLED)
 
-    def _add_reading_buttons(self):
-        """Buttons that trigger the data reading from the hardwares
-
-        :return: None
-        """
-
-        self._btn_read_weight = Button(
-            self._lblfrm_weight,
-            text=get_app_definitions('read_grain_weight')
-        )
-
-        self._btn_read_weight.pack(fill=BOTH, expand=YES)
-
-        self._btn_read_humidity = Button(
-            self._lblfrm_hum,
-            text=get_app_definitions('read_grain_humidity')
-        )
-
-        self._btn_read_humidity.pack(fill=BOTH, expand=YES)
-
-    def _button_persist_data(self):
-        """ Save data button, not yet implemented
-
-        :return: None
-        """
-
         Button(
-            self,
-            text=get_app_definitions('button_text_save_data')
+            self._lblfrm_hum,
+            text=get_app_definitions('btn_save_humidity'),
+            command=self._save_humidity_portion
         ).pack(fill=X)
-
-    def _add_stsbar_info(self):
-        """define the status bar where will be the system messages
-
-        :return: None
-        """
-
-        self._stb_info = Label(
-            self,
-            borderwidth=1,
-            relief=SUNKEN,
-            anchor=W,
-            textvariable=self._stb_info_var
-        )
-
-        self._stb_info.pack(side=BOTTOM, fill=X)
 
     def _conn_serials(self):
         """connect to 3100 indicator and G810 by their respectively serials
@@ -351,41 +334,51 @@ class AppWin(Frame):
         :return: None
         """
 
-        while True:
+        while self._thread_is_running:
 
             if self._ind3100.is_open:
-                if self._enable_main_status:
-                    self.app_status = get_app_definitions('sys_app_msg_02')
 
-                self._stabilize_reading(self._ind3100.readline())
+                try:
+                    serial_data = str(self._ind3100.readline())
+                except SerialException as e:
+                    self._thread_is_running = False
+                    self.master.after(2000, self._dlg_restart_collect)
+                    continue
 
-            if not self._thread_is_running:
-                break
+                values_found = re.findall(
+                    '(-?\d+,\d+)',
+                    serial_data
+                )
 
-    def _stabilize_reading(self, serial_data):
+                if len(values_found) > 0:
+                    weight_read = float(values_found[0].replace(',', '.'))
+                    self.weight_portion = weight_read
+                else:
+                    self.weight_portion = 0.
 
-        values_found = re.findall(
-            '(\d+,\d+)',
-            str(serial_data)
-        )
+    def _dlg_restart_collect(self):
 
-        if len(values_found) > 0:
-            weight_read = float(values_found[0].replace(',', '.'))
+        if askyesno(
+                get_app_definitions('ex_failure_01'),
+                get_app_definitions('ex_failure_02')
+        ):
 
-            if self.weight_portion == weight_read:
-                self.app_status = get_app_definitions('weight_msg_01')
-                if not self._enable_main_status:
-                    self.master.after(2000, self._enable_main_sts)
-            else:
-                self.app_status = get_app_definitions('weight_msg_02')
-                self._enable_main_status = False
-
-            self.weight_portion = weight_read
+            self._thread_is_running = True
         else:
-            self.weight_portion = 0.
+            self._close_app()
 
-        return self.weight_portion
+    def _save_weight_portion(self):
 
-    def _enable_main_sts(self):
+        showinfo('Saving...', 'Persisting weight...')
+        # TODO
+        # test if has a valid id code
+        # connect with database
+        # persist
 
-        self._enable_main_status = True
+    def _save_humidity_portion(self):
+
+        showinfo('Saving...', 'Persisting humidity...')
+        # TODO
+        # test if has a valid id code
+        # connect with database
+        # persist
