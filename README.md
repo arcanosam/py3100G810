@@ -19,6 +19,11 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
   * [pyserial](https://github.com/pyserial/pyserial)
 
 
+##### Update 2018-11-28
+
+* Layout reformulation, new label fields add.
+  * some GUI simplification
+ 
 ##### Update 2018-11-26
 
 * Using simple method to identify when the value read is stable
