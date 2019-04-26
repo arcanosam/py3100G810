@@ -17,7 +17,22 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
 * Python **3.7.1** with 
   * **tkinter**
   * [pyserial](https://github.com/pyserial/pyserial)
+  * [python-ldap](https://github.com/python-ldap/python-ldap)
 
+
+##### Update 2019-04-26
+
+* **Now**, finally collecting data too from _Gehaka Grain Meter humidity G810_
+
+* Added:
+  * About window
+  * Login with LDAP (optional)
+  * Start implementation of
+    * An application session (just a regressive timer until now...)
+    * An autocomplete
+      * but not integrate with database
+  
+* Some layout simplification
 
 ##### Update 2018-11-28
 
@@ -39,7 +54,7 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
 
 ##### Update 2018-11-16
 
-* Starts collect data from 3100 family weighing indicators' serial
+* Starts collect data from _3100 family weighing indicators'_ serial
 
  
 

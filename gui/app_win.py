@@ -1,31 +1,63 @@
 """GUI class definition for main window
 """
 
+from datetime import datetime, timedelta
+
 import re
 
 import threading
 
 from tkinter import (
-    CENTER, DoubleVar, DISABLED, HORIZONTAL,
-    StringVar, TOP, W, X, YES
+    BOTTOM, CENTER, DoubleVar, DISABLED, HORIZONTAL,
+    Menu, StringVar, SUNKEN, TOP, W, X, YES
 )
 
-from tkinter.ttk import Button, Entry, Frame, Label, LabelFrame, Panedwindow
+from tkinter.ttk import Button, Entry, Frame, Label, LabelFrame, Menubutton, Panedwindow
 
-from tkinter.messagebox import askyesno, showinfo
+from tkinter.messagebox import askyesno, showerror, showinfo
 
 from serial import Serial
 from serial.serialutil import SerialException
+
+from gui.login_win import LoginWin
+
+from gui.about_win import AboutWin
+
+from gui.autocomplete_entry import AutocompleteEntry
 
 from gui.app_def import get_app_definitions
 
 
 class AppWin(Frame):
 
-    def __init__(self, master=None, **kw):
+    def __init__(self, master=None):
 
         # Declarations
         ###############
+
+        self.LIMIT_ACESS = 60 * 5
+
+        # variable used to hold control time of acess
+        # of this app
+        self.done_time = None
+
+        # variable hold the top level instance
+        # to login auth window
+        self._frm_login = None
+
+        # User login variable
+
+        self._user_login = None
+
+        # variable hold the session/user info
+        self._lbl_info = None
+
+        # Main Menu variable
+
+        self._menubtn = None
+
+        # Menu creating
+        self._pref_opts = None
 
         # Entry widget to collect
         # ID code used to identify
@@ -92,10 +124,24 @@ class AppWin(Frame):
         # data and prevent the freeze of
         # application when the hardware is off
 
-        self._thread_is_running = True
+        self._thread_weight_is_running = True
 
-        self._thr_read_weight_serial = threading.Thread(target=self._collecting_loop)
+        self._thr_read_weight_serial = threading.Thread(target=self._weight_collect_loop)
         self._thr_read_weight_serial.setDaemon(True)
+
+        # variable used to hold Serial instance
+        # for g810 humidity measurer
+        self._g810 = Serial()
+
+        # Define a thread used after
+        # open the serial to collect the
+        # data and prevent the freeze of
+        # application when the hardware is off
+
+        self._thread_hum_is_running = True
+
+        self._thr_read_hum_serial = threading.Thread(target=self._hum_collect_loop)
+        self._thr_read_hum_serial.setDaemon(True)
 
         # GUI section
         ###############
@@ -112,9 +158,11 @@ class AppWin(Frame):
         # undone some necessary process
         self._master.protocol("WM_DELETE_WINDOW", self._close_app)
 
-        Frame.__init__(self, master, **kw)
+        Frame.__init__(self, master)
 
         self._add_title_app()
+
+        self._build_menu()
 
         self._add_ipt_id_code()
 
@@ -122,10 +170,12 @@ class AppWin(Frame):
 
         self._add_weight_humidity_panel()
 
+        self._status_info()
+
         # Final app sets
         #################
 
-        self._master.after(500, self._conn_serials)
+        self._master.after(500, self._start_login)
 
     # properties
     #############
@@ -156,13 +206,55 @@ class AppWin(Frame):
         :return: None
         """
 
-        self._thread_is_running = False
+        self._thread_weight_is_running = False
+        self._thread_hum_is_running = False
 
         if self._ind3100:
             self._ind3100.cancel_read()
             self._ind3100.close()
 
+        if self._g810:
+            self._g810.cancel_read()
+            self._g810.close()
+
         self._master.destroy()
+
+    def _start_login(self):
+
+        # print(self.winfo_reqwidth(), self.winfo_reqheight())
+
+        self._frm_login = LoginWin(self)
+
+        self._master.after(500, self._conn_serials)
+
+    def _show_sobre(self):
+
+        AboutWin(self._master)
+
+    def _build_menu(self):
+
+        # Main Menu
+        self._menubtn = Menubutton(self._master, text=get_app_definitions('about_menu_config'))
+
+        # Menu creating
+        self._pref_opts = Menu(self._menubtn, tearoff=False)
+
+        # linking each other
+        self._menubtn.config(menu=self._pref_opts)
+
+        # adding options
+        self._pref_opts.add_command(
+            label=get_app_definitions('about_menu_about'),
+            command=self._show_sobre
+        )
+
+        self._pref_opts.add_command(
+            label=get_app_definitions('about_menu_exit'),
+            command=self._close_app
+        )
+
+        # align left
+        self._menubtn.pack(anchor=W, fill=X)
 
     def _add_title_app(self):
         """define the Title application Label
@@ -203,10 +295,10 @@ class AppWin(Frame):
             fill=X
         )
 
-        self._ety_qrbarcode = Entry(
+        self._ety_qrbarcode = AutocompleteEntry(
+            None,
             self,
-            font='Courier 14 bold',
-            textvariable=self._ety_qrbarcode_var
+            font='Courier 14 bold'
         )
 
         self._ety_qrbarcode.pack(fill=X)
@@ -308,11 +400,27 @@ class AppWin(Frame):
             command=self._save_humidity_portion
         ).pack(fill=X)
 
+    def _status_info(self):
+
+        self._lbl_info = Label(
+            self,
+            text='\n',
+            borderwidth=1,
+            relief=SUNKEN,
+            anchor=W,
+            font="Courier 10 bold"
+        )
+
+        self._lbl_info.pack(side=BOTTOM, fill=X)
+
     def _conn_serials(self):
         """connect to 3100 indicator and G810 by their respectively serials
 
         :return: None
         """
+
+        self._start_session()
+        self._update_clock()
 
         if not self._ind3100.is_open:
             try:
@@ -328,21 +436,39 @@ class AppWin(Frame):
             except SerialException as e:
                 self._ind3100.close()
 
-    def _collecting_loop(self):
-        """loop to always capture the new data from both hardwares
+        if not self._g810.is_open:
+            try:
+
+                # apply serial config
+                self._g810.baudrate = 4800
+                self._g810.port = '/dev/ttyS0'
+
+                self._g810.rts = None
+                self._g810.dtr = None
+
+                self._g810.open()
+
+                # start thread
+                self._thr_read_hum_serial.start()
+
+            except SerialException as e:
+                self._g810.close()
+
+    def _weight_collect_loop(self):
+        """loop to always capture the new data from 3100 hardware
 
         :return: None
         """
 
-        while self._thread_is_running:
+        while self._thread_weight_is_running:
 
             if self._ind3100.is_open:
 
                 try:
                     serial_data = str(self._ind3100.readline())
                 except SerialException as e:
-                    self._thread_is_running = False
-                    self.master.after(2000, self._dlg_restart_collect)
+                    self._thread_weight_is_running = False
+                    self.master.after(2000, self._dlg_error_system)
                     continue
 
                 values_found = re.findall(
@@ -356,16 +482,68 @@ class AppWin(Frame):
                 else:
                     self.weight_portion = 0.
 
-    def _dlg_restart_collect(self):
+    def _hum_collect_loop(self):
+        """loop to always capture the new data from g810 hardware
 
-        if askyesno(
+        :return: None
+        """
+
+        while self._thread_hum_is_running:
+
+            if self._g810.is_open:
+
+                try:
+                    serial_data = str(self._g810.readline())
+                except SerialException as e:
+                    self._thread_hum_is_running = False
+                    self.master.after(2000, self._dlg_error_system)
+
+                values_found = serial_data.split(';')
+
+                if len(values_found) > 1:
+                    values_found = float(values_found[1])
+                    if values_found > 0.:
+                        hum_read = values_found
+                        self.humidity_portion = hum_read
+                    else:
+                        self.humidity_portion = 0.
+
+    def _dlg_error_system(self):
+
+        showerror(
                 get_app_definitions('ex_failure_01'),
                 get_app_definitions('ex_failure_02')
-        ):
+        )
 
-            self._thread_is_running = True
-        else:
+        self._close_app()
+
+    def _start_session(self):
+
+        self.done_time = datetime.now() + timedelta(seconds=self.LIMIT_ACESS)
+
+    def _update_clock(self):
+
+        elapsed = self.done_time - datetime.now()
+
+        m, s = elapsed.seconds/60, elapsed.seconds % 60
+
+        self._lbl_info.configure(
+            text="Usuário: %s\nSessão encerra em: %02d:%02d" % (
+                self._user_login,
+                m, s
+            )
+        )
+
+        if int(m) == 0 and s == 0:
+
+            showerror(
+                'Sessão encerrada',
+                'Favor reiniciar o aplicativo e efetuar novo login'
+            )
+
             self._close_app()
+
+        self._master.after(1000, self._update_clock)
 
     def _save_weight_portion(self):
 
@@ -382,3 +560,11 @@ class AppWin(Frame):
         # test if has a valid id code
         # connect with database
         # persist
+
+    def get_tk_root(self):
+
+        return self._master
+
+    def set_logged_user(self, login_name):
+
+        self._user_login = login_name
