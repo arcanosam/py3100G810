@@ -40,9 +40,9 @@ def get_app_definitions(app_prop):
         'lgn_dlg_wrn_desc01': 'System Warning: Invalid password! ({0})',
         'lgn_dlg_wrn_desc02': 'System Warning: Blank password!({0})\n\nPlease fill in the field.',
         'lgn_dlg_wrn_desc03': 'System Warning: Blank user ({0})\n\nPlease fill in the field.',
-        'lgn_frm_label_title': '               {0}\n       {1}'.format(
+        'lgn_frm_label_title': '               {0}\n                {1}'.format(
             'Authentication',
-            'Login'
+            'Login System'
         ),
         'lgn_form_btn_caption': 'Login',
         'about_menu_config': 'Preferences',
