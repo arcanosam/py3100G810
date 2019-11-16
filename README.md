@@ -11,51 +11,23 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
     * [3100 family weighing indicators](http://www.alfainstrumentos.com.br/produto/linha-3100-cs-painel/)
     * and [Gehaka Grain Meter G810](https://www.gehaka.com.br/produtos/linha-agricola/medidor-de-umidade-de-graos-de-bancada/g810-std)
 
-  * To **persist** this two collected values in a PostgreSQL database.
+  * To **persist** this three collected values in a ~~PostgreSQL~~ SQLite database.
+  * Export to CSV file
 
 ### Requirements
-* Python **3.7.1** with 
+* Python **3.7.5** with 
   * **tkinter**
   * [pyserial](https://github.com/pyserial/pyserial)
-  * [python-ldap](https://github.com/python-ldap/python-ldap)
 
+### Branch Trial CSV
+* To use for trial/demonstration
+* Persitance in SQLite database
+* Export data to CSV file
 
-##### Update 2019-04-26
+##### Update 2019-11-15
+* Remove login window
+* Update LICENSE
+* PEP 8 fix
 
-* **Now**, finally collecting data too from _Gehaka Grain Meter humidity G810_
-
-* Added:
-  * About window
-  * Login with LDAP (optional)
-  * Start implementation of
-    * An application session (just a regressive timer until now...)
-    * An autocomplete
-      * but not integrate with database
-  
-* Some layout simplification
-
-##### Update 2018-11-28
-
-* Layout reformulation, new label fields add.
-  * some GUI simplification
- 
-##### Update 2018-11-26
-
-* Using simple method to identify when the value read is stable
-  * Will be used when persist the values in database.
-
-##### Update 2018-11-26
-
-* Fix it bug when the 3100 weighing indicator is turned off, freezing the application.
-  * Solution used: Threads
-
-* Some code refactor
-  * Using python properties, make variables private...
-
-##### Update 2018-11-16
-
-* Starts collect data from _3100 family weighing indicators'_ serial
-
- 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
