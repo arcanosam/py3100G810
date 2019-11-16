@@ -12,7 +12,7 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
     * and [Gehaka Grain Meter G810](https://www.gehaka.com.br/produtos/linha-agricola/medidor-de-umidade-de-graos-de-bancada/g810-std)
 
   * To **persist** this three collected values in a ~~PostgreSQL~~ SQLite database.
-  * Export to CSV file
+  * *Export* to **CSV** file
 
 ### Requirements
 * Python **3.7.5** with 
@@ -21,13 +21,19 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
 
 ### Branch Trial CSV
 * To use for trial/demonstration
-* Persitance in SQLite database
+* Persistance in SQLite database
 * Export data to CSV file
 
 ##### Update 2019-11-15
-* Remove login window
+* Removed:
+   * login window
+   * session
+   * timer
 * Update LICENSE
 * PEP 8 fix
+* add SQLite file
+  * program starts and connect to sqlite
+  * program fire close event and close sqlite file
 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

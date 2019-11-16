@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 
 import re
 
+import sqlite3
+
 import threading
 
 from tkinter import (
@@ -141,6 +143,8 @@ class AppWin(Frame):
         self._thr_read_hum_serial = threading.Thread(target=self._hum_collect_loop)
         self._thr_read_hum_serial.setDaemon(True)
 
+        self._con_db_grains = sqlite3.connect('grains.data')
+
         # GUI section
         ###############
 
@@ -200,6 +204,7 @@ class AppWin(Frame):
         :return: None
         """
 
+        self._con_db_grains.close()
         self._thread_weight_is_running = False
         self._thread_hum_is_running = False
 
@@ -406,7 +411,6 @@ class AppWin(Frame):
         """
 
         self._start_session()
-        self._update_clock()
 
         if not self._ind3100.is_open:
             try:
@@ -506,30 +510,6 @@ class AppWin(Frame):
     def _start_session(self):
 
         self.done_time = datetime.now() + timedelta(seconds=self.LIMIT_ACESS)
-
-    def _update_clock(self):
-
-        elapsed = self.done_time - datetime.now()
-
-        m, s = elapsed.seconds/60, elapsed.seconds % 60
-
-        self._lbl_info.configure(
-            text="Usuário: %s\nSessão encerra em: %02d:%02d" % (
-                self._user_login,
-                m, s
-            )
-        )
-
-        if int(m) == 0 and s == 0:
-
-            showerror(
-                'Sessão encerrada',
-                'Favor reiniciar o aplicativo e efetuar novo login'
-            )
-
-            self._close_app()
-
-        self._master.after(1000, self._update_clock)
 
     def _save_weight_portion(self):
 
