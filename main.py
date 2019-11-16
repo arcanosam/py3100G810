@@ -5,6 +5,7 @@ from tkinter import Tk, BOTH
 
 from gui.app_win import AppWin
 
+
 def tk_configs(_master):
 
     w = 381

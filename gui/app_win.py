@@ -14,12 +14,10 @@ from tkinter import (
 
 from tkinter.ttk import Button, Entry, Frame, Label, LabelFrame, Menubutton, Panedwindow
 
-from tkinter.messagebox import askyesno, showerror, showinfo
+from tkinter.messagebox import showerror, showinfo
 
 from serial import Serial
 from serial.serialutil import SerialException
-
-from gui.login_win import LoginWin
 
 from gui.about_win import AboutWin
 
@@ -172,10 +170,6 @@ class AppWin(Frame):
 
         self._status_info()
 
-        # Final app sets
-        #################
-
-        self._master.after(500, self._start_login)
 
     # properties
     #############
@@ -218,14 +212,6 @@ class AppWin(Frame):
             self._g810.close()
 
         self._master.destroy()
-
-    def _start_login(self):
-
-        # print(self.winfo_reqwidth(), self.winfo_reqheight())
-
-        self._frm_login = LoginWin(self)
-
-        self._master.after(500, self._conn_serials)
 
     def _show_sobre(self):
 
