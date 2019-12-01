@@ -24,6 +24,13 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
 * Persistance in SQLite database
 * Export data to CSV file
 
+##### Update 2019-12-01
+* LICENSE add as hardcode on about_win module
+* Preparing to integrate autocomplete with search/insert operations on sqlite
+* sqlite db with new fields
+  * record column - date of when register was add first
+  * update column - when the record data was updated
+
 ##### Update 2019-11-15
 * Removed:
    * login window

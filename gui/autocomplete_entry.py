@@ -11,61 +11,70 @@ from tkinter import ACTIVE, END, Listbox, StringVar
 from tkinter.ttk import Entry
 import re
 
-ut_list = [
-    'a', 'actions', 'additional', 'also', 'an', 'and', 'angle', 'are', 'as', 'be', 'bind', 'bracket', 'brackets',
-    'button', 'can', 'cases', 'configure', 'course', 'detail', 'enter', 'event', 'events', 'example', 'field',
-    'fields', 'for', 'give', 'important', 'in', 'information', 'is', 'it', 'just', 'key', 'keyboard', 'kind',
-    'leave', 'left', 'like', 'manager', 'many', 'match', 'modifier', 'most', 'of', 'or', 'others', 'out', 'part',
-    'simplify', 'space', 'specifier', 'specifies', 'string;', 'that', 'the', 'there', 'to', 'type', 'unless',
-    'use', 'used', 'user', 'various', 'ways', 'we', 'window', 'wish', 'you'
-]
-
 
 class AutocompleteEntry(Entry):
 
-    def __init__(self, word_list, *args, **kwargs):
+    def __init__(self, list_qrbarcodes_db_values, *args, **kwargs):
 
         Entry.__init__(self, *args, **kwargs)
 
-        if word_list is None:
-            self.lista = ut_list
+        self.list_qrbarcodes_db_values = list_qrbarcodes_db_values
+
+        self.lb = None
+
+        self._after_id = None
 
         self.var = StringVar()
 
         self.config(textvariable=self.var)
 
-        self.var.trace('w', self.changed)
+        # self.var.trace('w', self.changed)
 
         self.bind('<Return>', self.selection)
         self.bind('<Right>', self.selection)
         self.bind('<Up>', self.up)
         self.bind('<Down>', self.down)
+        self.bind('<Key>', self.handle_wait)
 
         self.lb_up = False
+
+    def handle_wait(self, event):
+        # cancel the old job
+        if self._after_id is not None:
+            self.after_cancel(self._after_id)
+
+        # create a new job
+        self._after_id = self.after(1000, self.changed)
 
     def changed(self, name=None, index=None, mode=None):
 
         if self.var.get() == '':
             if hasattr(self, 'lb'):
-                self.lb.destroy()
+                if self.lb:
+                    self.lb.destroy()
                 self.lb_up = False
 
         else:
-            if len(self.var.get()) > 2:
+            words = self.comparison()
 
-                words = self.comparison()
+            if words:
+                if not self.lb_up:
 
-                if words:
-                    if not self.lb_up:
-                        self.lb = Listbox(height=len(words), font=self.cget('font'))
-                        self.lb.bind('<Double-Button-1>', self.selection)
-                        self.lb.bind('<Right>', self.selection)
-                        self.lb.place(x=self.winfo_x(), y=self.winfo_y() + self.winfo_height())
-                        self.lb_up = True
+                    self.lb = Listbox(
+                        height=len(words),
+                        font=self.cget('font')
+                    )
+                    self.lb.bind('<Double-Button-1>', self.selection)
+                    self.lb.bind('<Right>', self.selection)
+                    self.lb.place(
+                        x=self.winfo_x(),
+                        y=self.winfo_y() + self.winfo_height()
+                    )
+                    self.lb_up = True
 
-                    self.lb.delete(0, END)
-                    for w in words:
-                        self.lb.insert(END, w)
+                self.lb.delete(0, END)
+                for w in words:
+                    self.lb.insert(END, w)
             else:
                 if self.lb_up:
                     self.lb.destroy()
@@ -107,5 +116,4 @@ class AutocompleteEntry(Entry):
 
     def comparison(self):
         pattern = re.compile('.*' + self.var.get() + '.*')
-        return [w for w in self.lista if re.match(pattern, w)]
-
+        return [w for w in self.list_qrbarcodes_db_values() if re.match(pattern, w)]

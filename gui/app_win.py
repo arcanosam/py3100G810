@@ -64,11 +64,6 @@ class AppWin(Frame):
         # weight and humidity  of grain
         self._ety_qrbarcode = None
 
-        # Variable to get the ide code of
-        # Entry wiget, that will identify
-        # the grain portion
-        self._ety_qrbarcode_var = StringVar()
-
         # Pannel Window that contains
         # LabelFrames widgets for weight and humidity
         # founded in database
@@ -513,11 +508,12 @@ class AppWin(Frame):
 
     def _save_weight_portion(self):
 
-        showinfo('Saving...', 'Persisting weight...')
-        # TODO
-        # test if has a valid id code
-        # connect with database
-        # persist
+        showinfo('Saving...', 'Persisting weight - {0}'.format(self._ety_qrbarcode.get()))
+        # TODO 2019-11-16
+        # insert records for tests
+        # create method list_qrbarcodes_db_values to get the id of qrbarcodes
+        # test the autocomplete entry
+        # go on to persist data
 
     def _save_humidity_portion(self):
 
