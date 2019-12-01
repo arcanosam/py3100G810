@@ -17,7 +17,7 @@ def get_app_definitions(app_prop):
         'app_label_edit': 'ID code:',
         'app_lbledt_bkgr': 'white',
         'app_lbledt_frgr': 'green',
-        'labelframe_db_values_caption': 'Database values found:',
+        'labelframe_db_values_caption': 'Database values found for this id above:',
         'label_db_weight': 'Weight: ',
         'label_db_humidi': 'Humidity: ',
         'labelframe_weight_caption': 'Weight:',
@@ -29,25 +29,15 @@ def get_app_definitions(app_prop):
             'A failure was identified during reading from 3100 weighing indicators.\n',
             'Click in Yes to restart the data reading or No to quit this application.'
         ]),
-        'LDAP_ENABLED': False,
-        'lgn_fld_dflt_user': 'User',
-        'lgn_fld_dflt_pwd': '     ',
         'lgn_dlg_close_title': 'Exit',
         'lgn_dlg_close_txt': 'Would like to finish the application?',
-        'lgn_ldap_addr': 'ldap://',
-        'lgn_ldap_dnbind': '',
-        'lgn_dlg_wrn_title': 'Login Error',  # _wrn = warning
-        'lgn_dlg_wrn_desc01': 'System Warning: Invalid password! ({0})',
-        'lgn_dlg_wrn_desc02': 'System Warning: Blank password!({0})\n\nPlease fill in the field.',
-        'lgn_dlg_wrn_desc03': 'System Warning: Blank user ({0})\n\nPlease fill in the field.',
-        'lgn_frm_label_title': '               {0}\n                {1}'.format(
-            'Authentication',
-            'Login System'
-        ),
-        'lgn_form_btn_caption': 'Login',
         'about_menu_config': 'Preferences',
         'about_menu_about': 'About...',
         'about_menu_exit': 'Exit',
-        'about_win_btn': 'OK'
+        'about_win_btn': 'OK',
+        'title_id_code_404': 'Id not found!',
+        'ask_id_code_to_save': 'Would you like to save as new ID?',
+        'title_id_code_saved': 'New Code Id added',
+        'msg_id_code_saved': 'The new code ID was inserted with successful'
 
     }[app_prop]

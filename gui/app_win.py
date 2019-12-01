@@ -1,8 +1,6 @@
 """GUI class definition for main window
 """
 
-from datetime import datetime, timedelta
-
 import re
 
 import sqlite3
@@ -10,22 +8,23 @@ import sqlite3
 import threading
 
 from tkinter import (
-    BOTTOM, CENTER, DoubleVar, DISABLED, HORIZONTAL,
-    Menu, StringVar, SUNKEN, TOP, W, X, YES
+    ACTIVE, BOTTOM, CENTER, DoubleVar, DISABLED,
+    END, HORIZONTAL, Listbox, Menu, StringVar,
+    SUNKEN, TOP, W, X, YES
 )
 
 from tkinter.ttk import Button, Entry, Frame, Label, LabelFrame, Menubutton, Panedwindow
 
-from tkinter.messagebox import showerror, showinfo
+from tkinter.messagebox import showerror, showinfo, askyesno
 
 from serial import Serial
 from serial.serialutil import SerialException
 
 from gui.about_win import AboutWin
 
-from gui.autocomplete_entry import AutocompleteEntry
-
 from gui.app_def import get_app_definitions
+
+from dao.data_ids import DataIds
 
 
 class AppWin(Frame):
@@ -35,25 +34,10 @@ class AppWin(Frame):
         # Declarations
         ###############
 
-        self.LIMIT_ACESS = 60 * 5
-
-        # variable used to hold control time of acess
-        # of this app
-        self.done_time = None
-
-        # variable hold the top level instance
-        # to login auth window
-        self._frm_login = None
-
-        # User login variable
-
-        self._user_login = None
-
         # variable hold the session/user info
         self._lbl_info = None
 
         # Main Menu variable
-
         self._menubtn = None
 
         # Menu creating
@@ -63,6 +47,10 @@ class AppWin(Frame):
         # ID code used to identify
         # weight and humidity  of grain
         self._ety_qrbarcode = None
+
+        # StringVar variable to hold the id code value
+        # on the Entry widget
+        self._ety_qrbarcode_var = StringVar()
 
         # Pannel Window that contains
         # LabelFrames widgets for weight and humidity
@@ -138,7 +126,17 @@ class AppWin(Frame):
         self._thr_read_hum_serial = threading.Thread(target=self._hum_collect_loop)
         self._thr_read_hum_serial.setDaemon(True)
 
-        self._con_db_grains = sqlite3.connect('grains.data')
+        # Class that implement persistance operations
+
+        self._con_db_grains = DataIds(sqlite3.connect('grains.data'))
+
+        # Id Code members to allow Entry Autocomplete Widget
+
+        self._lb_auto_complete = None
+
+        self._lb_auto_compl_after_id = None
+
+        self._lb_auto_compl_is_up = False
 
         # GUI section
         ###############
@@ -169,7 +167,6 @@ class AppWin(Frame):
 
         self._status_info()
 
-
     # properties
     #############
 
@@ -199,7 +196,7 @@ class AppWin(Frame):
         :return: None
         """
 
-        self._con_db_grains.close()
+        self._con_db_grains.close_con()
         self._thread_weight_is_running = False
         self._thread_hum_is_running = False
 
@@ -281,15 +278,155 @@ class AppWin(Frame):
             fill=X
         )
 
-        self._ety_qrbarcode = AutocompleteEntry(
-            None,
+        self._ety_qrbarcode = Entry(
             self,
-            font='Courier 14 bold'
+            font='Courier 14 bold',
+            textvariable=self._ety_qrbarcode_var
         )
 
         self._ety_qrbarcode.pack(fill=X)
 
+        self._ety_qrbarcode.bind('<Escape>', self._lb_auto_compl_escape)
+        self._ety_qrbarcode.bind('<Return>', self._lb_auto_compl_selection)
+        self._ety_qrbarcode.bind('<Right>', self._lb_auto_compl_selection)
+        self._ety_qrbarcode.bind('<Up>', self._lb_auto_compl_ev_up)
+        self._ety_qrbarcode.bind('<Down>', self._lb_auto_compl_ev_down)
+        self._ety_qrbarcode.bind('<Key>', self._lb_auto_compl_handle_wait)
+
         self._ety_qrbarcode.focus()
+
+    def _lb_auto_compl_escape(self, event):
+
+        if self._lb_auto_compl_is_up:
+            self._lb_auto_complete.destroy()
+            self._lb_auto_compl_is_up = False
+
+    def _lb_auto_compl_selection(self, event):
+
+        if self._lb_auto_compl_is_up:
+
+            id_code_value = self._lb_auto_complete.get(ACTIVE)
+
+            self._ety_qrbarcode_var.set(id_code_value[0])
+
+            self.fill_with_previous_grain_data(id_code_value[0])
+
+            self._lb_auto_complete.destroy()
+
+            self._lb_auto_compl_is_up = False
+
+            self._ety_qrbarcode.icursor(END)
+
+    def _lb_auto_compl_ev_up(self, event):
+
+        if self._lb_auto_compl_is_up:
+
+            if self._lb_auto_complete.curselection() == ():
+                index = '0'
+
+            else:
+                index = self._lb_auto_complete.curselection()[0]
+
+            if index != '0':
+
+                self._lb_auto_complete.selection_clear(first=index)
+
+                index = str(int(index) - 1)
+
+                self._lb_auto_complete.selection_set(first=index)
+                self._lb_auto_complete.activate(index)
+
+    def _lb_auto_compl_ev_down(self, event):
+
+        if self._lb_auto_compl_is_up:
+
+            if self._lb_auto_complete.curselection() == ():
+                index = '0'
+
+            else:
+                index = self._lb_auto_complete.curselection()[0]
+
+            if index != END:
+                self._lb_auto_complete.selection_clear(first=index)
+
+                index = str(int(index) + 1)
+
+                self._lb_auto_complete.selection_set(first=index)
+                self._lb_auto_complete.activate(index)
+
+    def _lb_auto_compl_handle_wait(self, event):
+        # cancel the old job
+        if self._lb_auto_compl_after_id is not None:
+            self.after_cancel(self._lb_auto_compl_after_id)
+
+        self.fill_with_previous_grain_data(None)
+
+        # create a new job
+        self._lb_auto_compl_after_id = self.after(1000, self._lb_auto_compl_changed)
+
+    def _lb_auto_compl_changed(self, name=None, index=None, mode=None):
+
+        if self._ety_qrbarcode_var.get() == '':
+
+            if hasattr(self, 'lb'):
+                if self._lb_auto_complete:
+                    self._lb_auto_complete.destroy()
+                self._lb_auto_compl_is_up = False
+
+        else:
+            words = self._con_db_grains.search_grain_id_code(self._ety_qrbarcode_var.get())
+
+            if words:
+                if not self._lb_auto_compl_is_up:
+
+                    self._lb_auto_complete = Listbox(
+                        height=len(words),
+                        font=self._ety_qrbarcode.cget('font')
+                    )
+
+                    self._lb_auto_complete.bind('<Double-Button-1>', self._lb_auto_compl_selection)
+
+                    self._lb_auto_complete.bind('<Right>', self._lb_auto_compl_selection)
+
+                    self._lb_auto_complete.place(
+                        x=self._ety_qrbarcode.winfo_x()+2,
+                        y=self._ety_qrbarcode.winfo_y() + self._ety_qrbarcode.winfo_height()*2
+                    )
+
+                    self._lb_auto_compl_is_up = True
+
+                self._lb_auto_complete.delete(0, END)
+
+                for w in words:
+                    self._lb_auto_complete.insert(END, w)
+
+            else:
+                if self._lb_auto_compl_is_up:
+
+                    self._lb_auto_complete.destroy()
+                    self._lb_auto_compl_is_up = False
+
+                    if askyesno(
+                            get_app_definitions('title_id_code_404'),
+                            get_app_definitions('ask_id_code_to_save')
+                    ):
+                        self._con_db_grains.insert_grain_id(self._ety_qrbarcode_var.get())
+
+                        showinfo(
+                            get_app_definitions('title_id_code_saved'),
+                            get_app_definitions('msg_id_code_saved')
+                        )
+                else:
+                    if askyesno(
+                            get_app_definitions('title_id_code_404'),
+                            get_app_definitions('ask_id_code_to_save')
+                    ):
+                        self._con_db_grains.insert_grain_id(self._ety_qrbarcode_var.get())
+
+                        showinfo(
+                            get_app_definitions('title_id_code_saved'),
+                            get_app_definitions('msg_id_code_saved')
+                        )
 
     def _add_database_values_panel(self):
 
@@ -313,7 +450,8 @@ class AppWin(Frame):
         self._lbl_db_weight = Label(
             self._lblfrm_db_values,
             font='size 13 bold'
-        ).grid(row=0, column=1)
+        )
+        self._lbl_db_weight.grid(row=0, column=1)
 
         Label(
             self._lblfrm_db_values,
@@ -324,7 +462,24 @@ class AppWin(Frame):
         self._lbl_db_humidity = Label(
             self._lblfrm_db_values,
             font='size 13 bold'
-        ).grid(row=1, column=1)
+        )
+
+        self._lbl_db_humidity.grid(row=1, column=1)
+
+    def fill_with_previous_grain_data(self, id_code_value):
+
+        if id_code_value is not None:
+            weight_humidity_values = self._con_db_grains.search_grain_data(id_code_value)
+        else:
+            weight_humidity_values = ('', '',)
+
+        self._lbl_db_weight.config(
+            text=weight_humidity_values[0]  # weight
+        )
+
+        self._lbl_db_humidity.config(
+            text=weight_humidity_values[1]  # humidity
+        )
 
     def _add_weight_humidity_panel(self):
         """define the main Pannel Widget
@@ -358,7 +513,7 @@ class AppWin(Frame):
         Button(
             self._lblfrm_weight,
             text=get_app_definitions('btn_save_weight'),
-            command = self._save_weight_portion
+            command=self._save_weight_portion
         ).pack(fill=X)
 
         self._lblfrm_hum = LabelFrame(
@@ -404,8 +559,6 @@ class AppWin(Frame):
 
         :return: None
         """
-
-        self._start_session()
 
         if not self._ind3100.is_open:
             try:
@@ -502,31 +655,22 @@ class AppWin(Frame):
 
         self._close_app()
 
-    def _start_session(self):
-
-        self.done_time = datetime.now() + timedelta(seconds=self.LIMIT_ACESS)
-
     def _save_weight_portion(self):
 
-        showinfo('Saving...', 'Persisting weight - {0}'.format(self._ety_qrbarcode.get()))
-        # TODO 2019-11-16
-        # insert records for tests
-        # create method list_qrbarcodes_db_values to get the id of qrbarcodes
-        # test the autocomplete entry
-        # go on to persist data
+        showinfo(
+            'Saving...', 'Persisting weight - {0}'.format(
+                self._con_db_grains.get_current_record_id()
+            )
+        )
 
     def _save_humidity_portion(self):
 
-        showinfo('Saving...', 'Persisting humidity...')
-        # TODO
-        # test if has a valid id code
-        # connect with database
-        # persist
+        showinfo(
+            'Saving...', 'Persisting humidity... {0}'.format(
+                self._con_db_grains.get_current_record_id()
+            )
+        )
 
     def get_tk_root(self):
 
         return self._master
-
-    def set_logged_user(self, login_name):
-
-        self._user_login = login_name

@@ -24,7 +24,20 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
 * Persistance in SQLite database
 * Export data to CSV file
 
-##### Update 2019-12-01
+##### Update 2019-12-01 #2
+* New text definitions added on app_def module
+  * used on alert dialogs when no Id Code is Found and 
+  when a new Id Code is added
+* Remove various lines of dead code no more needed
+  * Codes used to control auth and session data
+* Insertion of new Id Codes implemented
+* Search for Id Codes with autocomplete functionality implemented
+  * When an Id Code is found, the weight and humidity of
+    respectivity grain are returned
+* Data access object directory added
+  * Simple class to connect with Sqlite to persist the grain data
+
+##### Update 2019-12-01 #1
 * LICENSE add as hardcode on about_win module
 * Preparing to integrate autocomplete with search/insert operations on sqlite
 * sqlite db with new fields
