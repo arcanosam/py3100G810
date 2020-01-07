@@ -24,6 +24,24 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
 * Persistance in SQLite database
 * Export data to CSV file
 
+##### Update 2020-01-06
+* dao/data_ids.py
+  * Improving database class
+    * _run_sql method which execute queries and return if successful or not
+      * refactoring other methods to use this one
+
+* gui/app_def.py
+  * New default text definitions 
+
+* gui/app_win.py
+  * Added Csv Exporter feature 
+    * New menu option to use this feature
+  * Added persistance of Weight and Humidity on sqlite database
+    * After each persistance is asked if wish to clean fields
+      * if not, the current id found is used to persistance the same attribute or the other
+    * Refactoring on database operations because of the improvements list above
+  * Cleaning fields on every change of id code value input
+
 ##### Update 2019-12-01 #2
 * New text definitions added on app_def module
   * used on alert dialogs when no Id Code is Found and 

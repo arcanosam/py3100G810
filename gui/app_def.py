@@ -31,13 +31,19 @@ def get_app_definitions(app_prop):
         ]),
         'lgn_dlg_close_title': 'Exit',
         'lgn_dlg_close_txt': 'Would like to finish the application?',
-        'about_menu_config': 'Preferences',
-        'about_menu_about': 'About...',
-        'about_menu_exit': 'Exit',
+        'title_menu': 'Options',
+        'menu_csv_export': 'Export all data',
+        'menu_about': 'About...',
+        'menu_exit': 'Exit',
         'about_win_btn': 'OK',
         'title_id_code_404': 'Id not found!',
         'ask_id_code_to_save': 'Would you like to save as new ID?',
         'title_id_code_saved': 'New Code Id added',
-        'msg_id_code_saved': 'The new code ID was inserted with successful'
-
+        'msg_id_code_saved': 'The new code ID was inserted with successful',
+        'db_failure_01': 'Database Error - Insert new code ID',
+        'db_failure_02': 'Database Error - Search previous data',
+        'db_failure_03': 'Database Error - Update weight data',
+        'db_failure_04': 'Database Error - Update humidity data',
+        'db_failure_05': 'Database Error - CSV exporting',
+        'db_failure_06': 'Database Error - Search ID exists'
     }[app_prop]

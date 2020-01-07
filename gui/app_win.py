@@ -1,6 +1,8 @@
 """GUI class definition for main window
 """
 
+import csv
+
 import re
 
 import sqlite3
@@ -16,6 +18,8 @@ from tkinter import (
 from tkinter.ttk import Button, Entry, Frame, Label, LabelFrame, Menubutton, Panedwindow
 
 from tkinter.messagebox import showerror, showinfo, askyesno
+
+from tkinter.filedialog import asksaveasfilename
 
 from serial import Serial
 from serial.serialutil import SerialException
@@ -217,7 +221,7 @@ class AppWin(Frame):
     def _build_menu(self):
 
         # Main Menu
-        self._menubtn = Menubutton(self._master, text=get_app_definitions('about_menu_config'))
+        self._menubtn = Menubutton(self._master, text=get_app_definitions('title_menu'))
 
         # Menu creating
         self._pref_opts = Menu(self._menubtn, tearoff=False)
@@ -227,12 +231,17 @@ class AppWin(Frame):
 
         # adding options
         self._pref_opts.add_command(
-            label=get_app_definitions('about_menu_about'),
+            label=get_app_definitions('menu_csv_export'),
+            command=self._save_exported_csv_file
+        )
+
+        self._pref_opts.add_command(
+            label=get_app_definitions('menu_about'),
             command=self._show_sobre
         )
 
         self._pref_opts.add_command(
-            label=get_app_definitions('about_menu_exit'),
+            label=get_app_definitions('menu_exit'),
             command=self._close_app
         )
 
@@ -374,13 +383,15 @@ class AppWin(Frame):
                 self._lb_auto_compl_is_up = False
 
         else:
-            words = self._con_db_grains.search_grain_id_code(self._ety_qrbarcode_var.get())
+            self._con_db_grains.clean_current_record()
 
-            if words:
+            cmd_result = self._con_db_grains.search_grain_id_code(self._ety_qrbarcode_var.get())
+
+            if cmd_result[0]:
                 if not self._lb_auto_compl_is_up:
 
                     self._lb_auto_complete = Listbox(
-                        height=len(words),
+                        height=len(cmd_result[1]),
                         font=self._ety_qrbarcode.cget('font')
                     )
 
@@ -397,10 +408,10 @@ class AppWin(Frame):
 
                 self._lb_auto_complete.delete(0, END)
 
-                for w in words:
-                    self._lb_auto_complete.insert(END, w)
+                for id_found in cmd_result[1]:
+                    self._lb_auto_complete.insert(END, id_found)
 
-            else:
+            elif cmd_result[1] is None:
                 if self._lb_auto_compl_is_up:
 
                     self._lb_auto_complete.destroy()
@@ -410,23 +421,40 @@ class AppWin(Frame):
                             get_app_definitions('title_id_code_404'),
                             get_app_definitions('ask_id_code_to_save')
                     ):
-                        self._con_db_grains.insert_grain_id(self._ety_qrbarcode_var.get())
+                        cmd_result = self._con_db_grains.insert_grain_id(self._ety_qrbarcode_var.get())
 
-                        showinfo(
-                            get_app_definitions('title_id_code_saved'),
-                            get_app_definitions('msg_id_code_saved')
-                        )
+                        if cmd_result[0]:
+                            showinfo(
+                                get_app_definitions('title_id_code_saved'),
+                                get_app_definitions('msg_id_code_saved')
+                            )
+                        else:
+                            showinfo(
+                                get_app_definitions('db_failure_01'),
+                                cmd_result[1]
+                            )
                 else:
                     if askyesno(
                             get_app_definitions('title_id_code_404'),
                             get_app_definitions('ask_id_code_to_save')
                     ):
-                        self._con_db_grains.insert_grain_id(self._ety_qrbarcode_var.get())
+                        cmd_result = self._con_db_grains.insert_grain_id(self._ety_qrbarcode_var.get())
 
-                        showinfo(
-                            get_app_definitions('title_id_code_saved'),
-                            get_app_definitions('msg_id_code_saved')
-                        )
+                        if cmd_result[0]:
+                            showinfo(
+                                get_app_definitions('title_id_code_saved'),
+                                get_app_definitions('msg_id_code_saved')
+                            )
+                        else:
+                            showinfo(
+                                get_app_definitions('db_failure_01'),
+                                cmd_result[1]
+                            )
+            else:
+                showinfo(
+                    get_app_definitions('db_failure_06'),
+                    cmd_result[1]
+                )
 
     def _add_database_values_panel(self):
 
@@ -468,10 +496,20 @@ class AppWin(Frame):
 
     def fill_with_previous_grain_data(self, id_code_value):
 
+        weight_humidity_values = ('', '',)
+
         if id_code_value is not None:
-            weight_humidity_values = self._con_db_grains.search_grain_data(id_code_value)
+            cmd_result = self._con_db_grains.search_grain_data(id_code_value)
+
+            if cmd_result[0]:
+                weight_humidity_values = cmd_result[1]
+            else:
+                showinfo(
+                    get_app_definitions('db_failure_02'),
+                    cmd_result[1]
+                )
         else:
-            weight_humidity_values = ('', '',)
+            self._con_db_grains.clean_current_record()
 
         self._lbl_db_weight.config(
             text=weight_humidity_values[0]  # weight
@@ -657,20 +695,70 @@ class AppWin(Frame):
 
     def _save_weight_portion(self):
 
-        showinfo(
-            'Saving...', 'Persisting weight - {0}'.format(
-                self._con_db_grains.get_current_record_id()
-            )
-        )
+        if self._con_db_grains.get_current_record_id() is not None:
+
+            import random
+            cmd_result = self._con_db_grains.update_weigth_humidity_value(self.weight_portion+random.random())
+
+            if cmd_result[0]:
+                showinfo('Record updated!', 'The weigth value was persisted with successful')
+            else:
+                showinfo(
+                    get_app_definitions('db_failure_03'),
+                    cmd_result[1]
+                )
+
+            if askyesno('Reset formulary', 'Do you want clean the formulary?'):
+                self._ety_qrbarcode_var.set('')
+                self.fill_with_previous_grain_data(None)
+        else:
+            showerror('Record not found!', 'There isn\'t no records select')
 
     def _save_humidity_portion(self):
 
-        showinfo(
-            'Saving...', 'Persisting humidity... {0}'.format(
-                self._con_db_grains.get_current_record_id()
-            )
+        if self._con_db_grains.get_current_record_id() is not None:
+
+            import random
+            cmd_result = self._con_db_grains.update_weigth_humidity_value(self.humidity_portion+random.random(), False)
+
+            if cmd_result[0]:
+                showinfo('Record updated!', 'The humidity value was persisted with successful')
+            else:
+                showinfo(
+                    get_app_definitions('db_failure_04'),
+                    cmd_result[1]
+                )
+
+            if askyesno('Reset formulary', 'Do you want clean the formulary?'):
+                self._ety_qrbarcode_var.set('')
+                self.fill_with_previous_grain_data(None)
+        else:
+            showerror('Record not found!', 'There isn\'t no records select')
+
+    def _save_exported_csv_file(self):
+
+        csv_file_name = asksaveasfilename(
+            title='CSV File name',
+            filetypes=(('csv files', '*.csv'),)
         )
 
-    def get_tk_root(self):
+        cmd_result = self._con_db_grains.get_all_grains()
 
-        return self._master
+        if cmd_result[0]:
+            # Table headers.
+            headers = ['code', 'weight', 'humidity', 'record date', 'update date']
+
+            # Open CSV file for writing.
+            with open(csv_file_name, 'w', newline='') as csv_file_handle:
+                csv_file_pointer = csv.writer(csv_file_handle)
+
+                # Add the headers and data to the CSV file.
+                csv_file_pointer.writerow(headers)
+                csv_file_pointer.writerows(cmd_result[1])
+
+            showinfo('Exported successful!', 'All data was sucessfuly exported to csv file')
+        else:
+            showinfo(
+                get_app_definitions('db_failure_05'),
+                cmd_result[1]
+            )
