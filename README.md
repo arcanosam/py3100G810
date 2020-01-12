@@ -24,6 +24,22 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
 * Persistance in SQLite database
 * Export data to CSV file
 
+##### Update 2020-01-12
+* dao/data_ids.py
+  * include the return of sql result after insert a new ID
+  * remove id field when export data to csv file
+  * added method to cleanup database
+
+* gui/app_def.py
+  * more new text definitions 
+
+* gui/app_win.py
+  * New menu option added
+    * allowed cleanup database
+  * Load com ports of each device (3100 and g810) from ini file
+    * new devices.ini added
+  * Refactoring of strings used in dialogs by get_app_definitions method
+
 ##### Update 2020-01-06
 * dao/data_ids.py
   * Improving database class

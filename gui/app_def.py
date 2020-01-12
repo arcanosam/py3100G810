@@ -45,5 +45,33 @@ def get_app_definitions(app_prop):
         'db_failure_03': 'Database Error - Update weight data',
         'db_failure_04': 'Database Error - Update humidity data',
         'db_failure_05': 'Database Error - CSV exporting',
-        'db_failure_06': 'Database Error - Search ID exists'
+        'db_failure_06': 'Database Error - Search ID exists',
+        'db_failure_07': 'Database Error - Clean database',
+        'menu_db_clean': 'Clean database',
+        'dlg_tt_rec_save': 'Record updated!',
+        'dlg_tt_weight_savemsg': 'The weigth value was persisted with successful',
+        'dlg_reset_frm': 'Reset formulary',
+        'dlg_reset_msg': 'Do you want clean the formulary?',
+        'dlg_tt_humid_savemsg': 'The humidity value was persisted with successful',
+        'dlg_tt_rec404': 'Record not found!',
+        'dlg_tt_rec404msg': 'There isn\'t no records select',
+        'dlg_csv_export_tt': 'CSV File name',
+        'dlg_csv_expOK_tt': 'Exported successful!',
+        'dlg_csv_expOk_msg': 'All data was sucessfuly exported to csv file',
+        'dlg_clean_db_tt': 'Clean database',
+        'dlg_clean_db_msg': 'Do you want clean the database?',
+        'dlg_csv_exp_can_tt': 'CSV Export',
+        'dlg_ope_can_msg': 'The operation was canceled',
+        'dlg_backup_tt': 'Backup all data',
+        'dlg_backup_msg': 'Do you want make a backup of all data, before clean database?',
+        'dlg_backupCan_tt': 'Backup canceled',
+        'dlg_backupCan_msg': ''.join([
+            'You canceled the backup operation!\n\n',
+            'For safety, the cleanup of database was cancelled too.\n\n'
+            'Try again, but this time, you can choose',
+            ' to not make a backup of all data.'
+        ]),
+        'dlg_cleandbOk_tt': 'Clean Database',
+        'dlg_cleandbOk_msg': 'The database was reset for his default settings'
+
     }[app_prop]

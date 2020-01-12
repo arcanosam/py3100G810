@@ -44,6 +44,7 @@ class DataIds:
 
         if sql_result[0]:
             self._current_id = self._data_cursor.lastrowid
+            return sql_result
         else:
             return sql_result
 
@@ -118,7 +119,7 @@ class DataIds:
 
         sql_result = self._run_sql(
             """SELECT 
-                    id, code_value, weight, humidity, record_date, update_date
+                    code_value, weight, humidity, record_date, update_date
                 FROM
                     grains"""
         )
@@ -134,6 +135,34 @@ class DataIds:
     def clean_current_record(self):
 
         self._current_id = None
+
+    def rebuild_db(self):
+
+        try:
+
+            self._data_cursor.executescript(
+                """
+                BEGIN TRANSACTION;
+                DROP TABLE IF EXISTS "grains";
+                CREATE TABLE IF NOT EXISTS "grains" (
+                    "id"	INTEGER PRIMARY KEY AUTOINCREMENT,
+                    "code_value"	TEXT NOT NULL,
+                    "weight"	REAL NOT NULL,
+                    "humidity"	REAL NOT NULL,
+                    "record_date"	TEXT NOT NULL,
+                    "update_date"	TEXT NOT NULL
+                );
+                DROP INDEX IF EXISTS "grains_barcode_uindex";
+                CREATE UNIQUE INDEX IF NOT EXISTS "grains_barcode_uindex" ON "grains" (
+                    "code_value"
+                );
+                COMMIT;"""
+            )
+
+        except DatabaseError as e:
+            return False, e
+
+        return True, ''
 
     def close_con(self):
 

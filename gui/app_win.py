@@ -1,6 +1,8 @@
 """GUI class definition for main window
 """
 
+import configparser
+
 import csv
 
 import re
@@ -142,6 +144,11 @@ class AppWin(Frame):
 
         self._lb_auto_compl_is_up = False
 
+        # Load COM ports for each device from INI file
+        self._devices_ini = configparser.ConfigParser()
+
+        self._devices_ini.read('devices.ini')
+
         # GUI section
         ###############
 
@@ -234,6 +241,16 @@ class AppWin(Frame):
             label=get_app_definitions('menu_csv_export'),
             command=self._save_exported_csv_file
         )
+
+        self._pref_opts.add_separator()
+
+        # adding options
+        self._pref_opts.add_command(
+            label=get_app_definitions('menu_db_clean'),
+            command=self._clean_database
+        )
+
+        self._pref_opts.add_separator()
 
         self._pref_opts.add_command(
             label=get_app_definitions('menu_about'),
@@ -603,7 +620,7 @@ class AppWin(Frame):
 
                 # apply serial config
                 self._ind3100.baudrate = 19200
-                self._ind3100.port = 'COM10'
+                self._ind3100.port = self._devices_ini.get('3100').get('comPort')
                 self._ind3100.open()
 
                 # start thread
@@ -617,7 +634,7 @@ class AppWin(Frame):
 
                 # apply serial config
                 self._g810.baudrate = 4800
-                self._g810.port = '/dev/ttyS0'
+                self._g810.port = self._devices_ini.get('g810').get('comPort')
 
                 self._g810.rts = None
                 self._g810.dtr = None
@@ -701,18 +718,27 @@ class AppWin(Frame):
             cmd_result = self._con_db_grains.update_weigth_humidity_value(self.weight_portion+random.random())
 
             if cmd_result[0]:
-                showinfo('Record updated!', 'The weigth value was persisted with successful')
+                showinfo(
+                    get_app_definitions('dlg_tt_rec_save'),
+                    get_app_definitions('dlg_tt_weight_savemsg')
+                )
             else:
                 showinfo(
                     get_app_definitions('db_failure_03'),
                     cmd_result[1]
                 )
 
-            if askyesno('Reset formulary', 'Do you want clean the formulary?'):
+            if askyesno(
+                get_app_definitions('dlg_reset_frm'),
+                get_app_definitions('dlg_reset_msg')
+            ):
                 self._ety_qrbarcode_var.set('')
                 self.fill_with_previous_grain_data(None)
         else:
-            showerror('Record not found!', 'There isn\'t no records select')
+            showerror(
+                get_app_definitions('dlg_tt_rec404'),
+                get_app_definitions('dlg_tt_rec404msg')
+            )
 
     def _save_humidity_portion(self):
 
@@ -722,43 +748,112 @@ class AppWin(Frame):
             cmd_result = self._con_db_grains.update_weigth_humidity_value(self.humidity_portion+random.random(), False)
 
             if cmd_result[0]:
-                showinfo('Record updated!', 'The humidity value was persisted with successful')
+                showinfo(
+                    get_app_definitions('dlg_tt_rec_save'),
+                    get_app_definitions('dlg_tt_humid_savemsg')
+                )
             else:
                 showinfo(
                     get_app_definitions('db_failure_04'),
                     cmd_result[1]
                 )
 
-            if askyesno('Reset formulary', 'Do you want clean the formulary?'):
+            if askyesno(
+                    get_app_definitions('dlg_reset_frm'),
+                    get_app_definitions('dlg_reset_msg')
+            ):
                 self._ety_qrbarcode_var.set('')
                 self.fill_with_previous_grain_data(None)
         else:
-            showerror('Record not found!', 'There isn\'t no records select')
+            showerror(
+                get_app_definitions('dlg_tt_rec404'),
+                get_app_definitions('dlg_tt_rec404msg')
+            )
 
-    def _save_exported_csv_file(self):
+    def _save_exported_csv_file(self, backup=None):
 
         csv_file_name = asksaveasfilename(
-            title='CSV File name',
+            title=get_app_definitions('dlg_csv_export_tt'),
             filetypes=(('csv files', '*.csv'),)
         )
 
-        cmd_result = self._con_db_grains.get_all_grains()
+        if len(csv_file_name):
 
-        if cmd_result[0]:
-            # Table headers.
-            headers = ['code', 'weight', 'humidity', 'record date', 'update date']
+            cmd_result = self._con_db_grains.get_all_grains()
 
-            # Open CSV file for writing.
-            with open(csv_file_name, 'w', newline='') as csv_file_handle:
-                csv_file_pointer = csv.writer(csv_file_handle)
+            if cmd_result[0]:
+                # Table headers.
+                headers = ['code', 'weight', 'humidity', 'record date', 'update date']
 
-                # Add the headers and data to the CSV file.
-                csv_file_pointer.writerow(headers)
-                csv_file_pointer.writerows(cmd_result[1])
+                # Open CSV file for writing.
+                with open(csv_file_name, 'w', newline='') as csv_file_handle:
+                    csv_file_pointer = csv.writer(csv_file_handle)
 
-            showinfo('Exported successful!', 'All data was sucessfuly exported to csv file')
+                    # Add the headers and data to the CSV file.
+                    csv_file_pointer.writerow(headers)
+                    csv_file_pointer.writerows(cmd_result[1])
+
+                showinfo(
+                    get_app_definitions('dlg_csv_expOK_tt'),
+                    get_app_definitions('dlg_csv_expOk_msg')
+                )
+            else:
+                showinfo(
+                    get_app_definitions('db_failure_05'),
+                    cmd_result[1]
+                )
+        else:
+            if backup is None:
+                showinfo(
+                    get_app_definitions('dlg_csv_exp_can_tt'),
+                    get_app_definitions('dlg_ope_can_msg')
+                )
+            else:
+                showinfo(
+                    get_app_definitions('dlg_backupCan_tt'),
+                    get_app_definitions('dlg_backupCan_msg')
+                )
+
+    def _clean_database(self):
+
+        if askyesno(
+            get_app_definitions('dlg_clean_db_tt'),
+            get_app_definitions('dlg_clean_db_msg')
+        ):
+            if askyesno(
+                get_app_definitions('dlg_backup_tt'),
+                get_app_definitions('dlg_backup_msg')
+            ):
+                self._save_exported_csv_file(True)
+
+                cmd_result = self._con_db_grains.rebuild_db()
+
+                if cmd_result[0]:
+                    showinfo(
+                        get_app_definitions('dlg_cleandbOk_tt'),
+                        get_app_definitions('dlg_cleandbOk_msg')
+                    )
+                else:
+                    showinfo(
+                        get_app_definitions('db_failure_07'),
+                        cmd_result[1]
+                    )
+            else:
+                cmd_result = self._con_db_grains.rebuild_db()
+
+                if cmd_result[0]:
+                    showinfo(
+                        get_app_definitions('dlg_cleandbOk_tt'),
+                        get_app_definitions('dlg_cleandbOk_msg')
+                    )
+                else:
+                    showinfo(
+                        get_app_definitions('db_failure_07'),
+                        cmd_result[1]
+                    )
+
         else:
             showinfo(
-                get_app_definitions('db_failure_05'),
-                cmd_result[1]
+                get_app_definitions('menu_db_clean'),
+                get_app_definitions('dlg_ope_can_msg')
             )

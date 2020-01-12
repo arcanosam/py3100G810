@@ -83,10 +83,6 @@ SOFTWARE.
 Demais códigos livre reutilizados/readaptados:
 =====================================
 
-KYLE KOWALCZYK - Python Tkinter Password Entry Box
-Origem: https://smallguysit.com/index.php/2017/03/13/python-tkinter-password-entry-box/
-
-
 ActiveState Code - An Entry With Autocompletion For The Tkinter GUI (Python Recipe) 
 Origem: http://code.activestate.com/recipes/578253-an-entry-with-autocompletion-for-the-tkinter-gui/
 """
