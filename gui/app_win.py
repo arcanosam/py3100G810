@@ -211,13 +211,19 @@ class AppWin(Frame):
         self._thread_weight_is_running = False
         self._thread_hum_is_running = False
 
-        if self._ind3100:
-            self._ind3100.cancel_read()
-            self._ind3100.close()
+        try:
+            if self._ind3100:
+                self._ind3100.cancel_read()
+                self._ind3100.close()
 
-        if self._g810:
-            self._g810.cancel_read()
-            self._g810.close()
+            if self._g810:
+                self._g810.cancel_read()
+                self._g810.close()
+        except TypeError:
+            # in cases where there is no device connected
+            # this exception is launched
+            # and was preventing the window closing
+            pass
 
         self._master.destroy()
 
@@ -326,6 +332,8 @@ class AppWin(Frame):
         if self._lb_auto_compl_is_up:
             self._lb_auto_complete.destroy()
             self._lb_auto_compl_is_up = False
+
+        self._ety_qrbarcode.focus()
 
     def _lb_auto_compl_selection(self, event):
 
@@ -714,8 +722,7 @@ class AppWin(Frame):
 
         if self._con_db_grains.get_current_record_id() is not None:
 
-            import random
-            cmd_result = self._con_db_grains.update_weigth_humidity_value(self.weight_portion+random.random())
+            cmd_result = self._con_db_grains.update_weigth_humidity_value(self.weight_portion)
 
             if cmd_result[0]:
                 showinfo(
@@ -740,12 +747,13 @@ class AppWin(Frame):
                 get_app_definitions('dlg_tt_rec404msg')
             )
 
+        self._ety_qrbarcode.focus()
+
     def _save_humidity_portion(self):
 
         if self._con_db_grains.get_current_record_id() is not None:
 
-            import random
-            cmd_result = self._con_db_grains.update_weigth_humidity_value(self.humidity_portion+random.random(), False)
+            cmd_result = self._con_db_grains.update_weigth_humidity_value(self.humidity_portion, False)
 
             if cmd_result[0]:
                 showinfo(
@@ -769,6 +777,8 @@ class AppWin(Frame):
                 get_app_definitions('dlg_tt_rec404'),
                 get_app_definitions('dlg_tt_rec404msg')
             )
+
+        self._ety_qrbarcode.focus()
 
     def _save_exported_csv_file(self, backup=None):
 
@@ -814,6 +824,8 @@ class AppWin(Frame):
                     get_app_definitions('dlg_backupCan_msg')
                 )
 
+        self._ety_qrbarcode.focus()
+
     def _clean_database(self):
 
         if askyesno(
@@ -857,3 +869,5 @@ class AppWin(Frame):
                 get_app_definitions('menu_db_clean'),
                 get_app_definitions('dlg_ope_can_msg')
             )
+
+        self._ety_qrbarcode.focus()

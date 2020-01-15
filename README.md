@@ -15,14 +15,38 @@ Grains weight and humidity collector from **3100 family weighing indicators** an
   * *Export* to **CSV** file
 
 ### Requirements
-* Python **3.7.5** with 
+* Python **3.7.6** with
   * **tkinter**
   * [pyserial](https://github.com/pyserial/pyserial)
+  * **Optional**
+    * [cx_freeze](https://anthony-tuininga.github.io/cx_Freeze/)
 
 ### Branch Trial CSV
 * To use for trial/demonstration
 * Persistance in SQLite database
 * Export data to CSV file
+
+##### Update 2020-01-15
+* dao/__init__.py
+  * added - required to cx_freeze work
+
+* lang.ini
+  * added - required to get the default app language
+
+* setup.py
+  * added - required to cx_freeze generate EXEs to Windows plataform
+
+* gui/app_def.py
+  * Refactoring to accepts other languages
+    * The app language is defined on lang.ini
+    * Brazilian portuguese is supported now as app language
+
+* gui/app_win.py
+  * try / catch block added _close_app
+    * to prevent crash in Windows plataform when exit the app
+    * Set focus to Id Code Entry(edit/input) after some system actions
+    * remove random package and random function
+      * Used to test the persistance
 
 ##### Update 2020-01-12
 * dao/data_ids.py
